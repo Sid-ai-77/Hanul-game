@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NULL LI Korean Quiz - 하늘쌤</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #FFF5F5 0%, #FFF0F5 50%, #F5F0FF 100%);
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 500px; margin: 0 auto; padding: 15px;
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0; margin-bottom: 10px;
+        }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .teacher-mini { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #E91E63; }
+        .teacher-name { font-size: 0.9rem; font-weight: 700; color: #E91E63; }
+        .nulri-badge {
+            background: linear-gradient(135deg, #7B2FF2, #E91E63);
+            color: #fff; padding: 3px 10px; border-radius: 20px;
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
+        }
+
+        /* Screens */
+        .screen { display: none; flex-direction: column; align-items: center; flex: 1; justify-content: center; }
+        .screen.active { display: flex; }
+
+        /* Start Screen */
+        .teacher-img { width: 160px; border-radius: 20px; margin-bottom: 1rem; box-shadow: 0 10px 30px rgba(233, 30, 99, 0.2); }
+        .game-title { font-size: 1.8rem; font-weight: 900; color: #333; margin-bottom: 0.3rem; }
+        .game-subtitle { font-size: 1rem; color: #E91E63; font-weight: 600; margin-bottom: 0.5rem; }
+        .game-desc { color: #777; font-size: 0.85rem; text-align: center; line-height: 1.7; margin-bottom: 1.5rem; padding: 0 1rem; }
+
+        .start-btn {
+            padding: 14px 40px; border: none; border-radius: 50px;
+            background: linear-gradient(135deg, #E91E63, #9C27B0);
+            color: #fff; font-size: 1.1rem; font-weight: 700;
+            cursor: pointer; transition: transform 0.2s; letter-spacing: 0.5px;
+        }
+        .start-btn:active { transform: scale(0.95); }
+
+        /* HUD */
+        .hud {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #fff; border-radius: 16px; padding: 12px 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px;
+        }
+        .hud-score { font-size: 1.3rem; font-weight: 800; color: #E91E63; }
+        .hud-combo { font-size: 0.8rem; color: #9C27B0; font-weight: 600; }
+        .hud-timer { font-size: 1.1rem; font-weight: 700; color: #333; }
+        .hud-timer.urgent { color: #F44336; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        /* Question */
+        .question-area {
+            background: #fff; border-radius: 20px; padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin-bottom: 15px;
+            text-align: center; flex-shrink: 0;
+        }
+        .question-label { font-size: 0.75rem; color: #aaa; margin-bottom: 8px; }
+        .question-word {
+            font-size: 2.5rem; font-weight: 900; color: #333;
+            margin-bottom: 5px; letter-spacing: 2px;
+        }
+        .question-romanization { font-size: 1rem; color: #999; margin-bottom: 10px; }
+        .sound-btn {
+            background: linear-gradient(135deg, #E91E63, #FF5722);
+            border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%;
+            font-size: 1.2rem; cursor: pointer; transition: transform 0.2s;
+        }
+        .sound-btn:active { transform: scale(0.9); }
+
+        /* Choices */
+        .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .choice-btn {
+            background: #fff; border: 2px solid #eee; border-radius: 14px;
+            padding: 16px 10px; font-size: 0.95rem; font-weight: 600; color: #333;
+            cursor: pointer; transition: all 0.2s; text-align: center;
+            line-height: 1.4;
+        }
+        .choice-btn:active { transform: scale(0.97); }
+        .choice-btn.correct { background: #E8F5E9; border-color: #4CAF50; color: #2E7D32; }
+        .choice-btn.wrong { background: #FFEBEE; border-color: #F44336; color: #C62828; }
+        .choice-btn.show-answer { background: #E8F5E9; border-color: #4CAF50; }
+
+        /* Answer feedback */
+        .feedback {
+            text-align: center; padding: 12px; border-radius: 12px;
+            margin-bottom: 10px; font-size: 0.9rem; font-weight: 600;
+            display: none;
+        }
+        .feedback.correct-fb { background: #E8F5E9; color: #2E7D32; display: block; }
+        .feedback.wrong-fb { background: #FFEBEE; color: #C62828; display: block; }
+
+        /* Teacher reaction */
+        .teacher-reaction {
+            position: fixed; bottom: 20px; right: 20px;
+            display: none; align-items: flex-end; gap: 8px;
+        }
+        .teacher-reaction.show { display: flex; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .reaction-bubble {
+            background: #fff; border-radius: 16px 16px 4px 16px; padding: 10px 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 0.85rem; max-width: 180px;
+        }
+        .reaction-teacher { width: 50px; border-radius: 50%; border: 2px solid #E91E63; }
+
+        /* Game Over */
+        .result-card {
+            background: #fff; border-radius: 24px; padding: 30px; text-align: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08); width: 100%;
+        }
+        .result-score { font-size: 3rem; font-weight: 900; color: #E91E63; }
+        .result-stats { color: #777; font-size: 0.9rem; margin: 10px 0 15px; line-height: 1.8; }
+        .result-msg { font-size: 1.1rem; font-weight: 700; color: #9C27B0; margin-bottom: 15px; }
+
+        .name-input-area { display: flex; gap: 8px; margin-bottom: 15px; justify-content: center; }
+        .name-input-area input {
+            padding: 10px 14px; border: 2px solid #E91E63; border-radius: 10px;
+            font-size: 1rem; width: 130px; outline: none; text-align: center;
+        }
+        .name-input-area button {
+            padding: 10px 16px; border: none; border-radius: 10px;
+            background: #E91E63; color: #fff; font-weight: 700; cursor: pointer;
+        }
+
+        .ranking-box { margin: 15px 0; width: 100%; }
+        .ranking-title { font-size: 0.9rem; font-weight: 700; color: #E91E63; margin-bottom: 8px; }
+        .ranking-list {
+            list-style: none; background: #FAFAFA; border-radius: 12px; padding: 10px;
+            max-height: 200px; overflow-y: auto;
+        }
+        .ranking-list li {
+            display: flex; justify-content: space-between; padding: 6px 8px;
+            font-size: 0.85rem; border-bottom: 1px solid #f0f0f0;
+        }
+        .ranking-list li:last-child { border: none; }
+        .ranking-list li .rank { font-weight: 800; color: #E91E63; width: 28px; }
+        .ranking-list li .name { flex: 1; margin: 0 8px; color: #333; }
+        .ranking-list li .pts { font-weight: 700; color: #9C27B0; }
+        .ranking-list li.mine { background: #FCE4EC; border-radius: 6px; }
+
+        .team-score-bar {
+            background: #F3E5F5; border-radius: 12px; padding: 12px; margin: 10px 0;
+            text-align: center;
+        }
+        .team-score-label { font-size: 0.75rem; color: #9C27B0; }
+        .team-score-value { font-size: 1.5rem; font-weight: 900; color: #7B1FA2; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="header-left">
+            <img src="teacher_haneul.png" class="teacher-mini" alt="하늘쌤">
+            <span class="teacher-name">하늘쌤</span>
+        </div>
+        <span class="nulri-badge">NULL LI ACADEMY</span>
+    </div>
+
+    <!-- START SCREEN -->
+    <div class="screen active" id="startScreen">
+        <img src="teacher_haneul.png" class="teacher-img" alt="하늘쌤">
+        <div class="game-title">Korean Quiz!</div>
+        <div class="game-subtitle">하늘쌤과 함께 배우는 한국어</div>
+        <div class="game-desc">
+            Hoc tieng Han cung co Ha Neul!<br>
+            30 giay - tra loi cang nhieu cang tot!<br>
+            Combo lien tiep de nhan diem thuong!<br>
+            Nhan nut loa de nghe phat am!
+        </div>
+        <button class="start-btn" onclick="startGame()">Bat dau! 시작!</button>
+        <div class="ranking-box" style="margin-top:20px;">
+            <div class="ranking-title">RANKING</div>
+            <ol class="ranking-list" id="startRanking"></ol>
+        </div>
+        <div class="team-score-bar" id="startTeamScore">
+            <div class="team-score-label">Ha Neul Team Tong diem</div>
+            <div class="team-score-value" id="startTeamValue">0</div>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div class="screen" id="gameScreen">
+        <div class="hud" style="width:100%;">
+            <div>
+                <div class="hud-score" id="scoreDisplay">0</div>
+                <div class="hud-combo" id="comboDisplay"></div>
+            </div>
+            <div class="hud-timer" id="timerDisplay">30</div>
+        </div>
+
+        <div class="question-area" id="questionArea" style="width:100%;">
+            <div class="question-label" id="qLabel">Han quoc ngu la gi?</div>
+            <div class="question-word" id="qWord">사랑</div>
+            <div class="question-romanization" id="qRoman">sa-rang</div>
+            <button class="sound-btn" onclick="playPronunciation()">&#128266;</button>
+        </div>
+
+        <div class="choices" id="choicesArea" style="width:100%;"></div>
+
+        <div class="feedback" id="feedback"></div>
+    </div>
+
+    <!-- TEACHER REACTION -->
+    <div class="teacher-reaction" id="teacherReaction">
+        <div class="reaction-bubble" id="reactionText"></div>
+        <img src="teacher_haneul.png" class="reaction-teacher" alt="">
+    </div>
+
+    <!-- GAME OVER -->
+    <div class="screen" id="endScreen">
+        <div class="result-card">
+            <img src="teacher_haneul.png" style="width:80px; border-radius:50%; border:3px solid #E91E63; margin-bottom:10px;">
+            <div class="result-msg" id="resultMsg"></div>
+            <div class="result-score" id="resultScore">0</div>
+            <div class="result-stats" id="resultStats"></div>
+
+            <div class="name-input-area" id="nameArea">
+                <input type="text" id="nameInput" placeholder="Ten cua ban" maxlength="8">
+                <button onclick="submitScore()">Dang ky</button>
+            </div>
+
+            <div class="team-score-bar">
+                <div class="team-score-label">Ha Neul Team Tong diem</div>
+                <div class="team-score-value" id="endTeamValue">0</div>
+            </div>
+
+            <div class="ranking-box">
+                <div class="ranking-title">RANKING</div>
+                <ol class="ranking-list" id="endRanking"></ol>
+            </div>
+
+            <button class="start-btn" onclick="startGame()" style="margin-top:15px;">Choi lai! 다시!</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+
+// Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyA1Ako6g5ratG37-l2C0NWs0_b6S5qdNJ8",
+    authDomain: "krispykreme-game.firebaseapp.com",
+    projectId: "krispykreme-game",
+    storageBucket: "krispykreme-game.firebasestorage.app",
+    messagingSenderId: "892904322375",
+    appId: "1:892904322375:web:bf2c82e9dae4163e05c862",
+    databaseURL: "https://krispykreme-game-default-rtdb.firebaseio.com"
+};
+let db = null, firebaseReady = false;
+try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    firebaseReady = true;
+} catch(e) { console.log('Firebase failed:', e); }
+
+// Word database - Korean to Vietnamese
+const words = [
+    // === Chao hoi (Greetings) - 15 words ===
+    { kr: "안녕하세요", roman: "an-nyeong-ha-se-yo", vi: "Xin chao", cat: "Chao hoi" },
+    { kr: "감사합니다", roman: "gam-sa-ham-ni-da", vi: "Cam on", cat: "Chao hoi" },
+    { kr: "미안합니다", roman: "mi-an-ham-ni-da", vi: "Xin loi", cat: "Chao hoi" },
+    { kr: "네", roman: "ne", vi: "Vang / Da", cat: "Chao hoi" },
+    { kr: "아니요", roman: "a-ni-yo", vi: "Khong", cat: "Chao hoi" },
+    { kr: "안녕히 가세요", roman: "an-nyeong-hi ga-se-yo", vi: "Tam biet (nguoi di)", cat: "Chao hoi" },
+    { kr: "안녕히 계세요", roman: "an-nyeong-hi gye-se-yo", vi: "Tam biet (nguoi o lai)", cat: "Chao hoi" },
+    { kr: "만나서 반갑습니다", roman: "man-na-seo ban-gap-seum-ni-da", vi: "Rat vui duoc gap ban", cat: "Chao hoi" },
+    { kr: "잘 지내세요?", roman: "jal ji-nae-se-yo", vi: "Ban khoe khong?", cat: "Chao hoi" },
+    { kr: "실례합니다", roman: "sil-lye-ham-ni-da", vi: "Xin loi (phep)", cat: "Chao hoi" },
+    { kr: "환영합니다", roman: "hwan-yeong-ham-ni-da", vi: "Chao mung", cat: "Chao hoi" },
+    { kr: "좋은 아침", roman: "jo-eun a-chim", vi: "Chao buoi sang", cat: "Chao hoi" },
+    { kr: "잘 자요", roman: "jal ja-yo", vi: "Chuc ngu ngon", cat: "Chao hoi" },
+    { kr: "천만에요", roman: "cheon-man-e-yo", vi: "Khong co gi", cat: "Chao hoi" },
+
+    // === Cam xuc (Emotions) - 15 words ===
+    { kr: "행복", roman: "haeng-bok", vi: "Hanh phuc", cat: "Cam xuc" },
+    { kr: "슬픔", roman: "seul-peum", vi: "Buon", cat: "Cam xuc" },
+    { kr: "화", roman: "hwa", vi: "Tuc gian", cat: "Cam xuc" },
+    { kr: "사랑", roman: "sa-rang", vi: "Tinh yeu", cat: "Cam xuc" },
+    { kr: "기쁨", roman: "gi-ppeum", vi: "Vui mung", cat: "Cam xuc" },
+    { kr: "두려움", roman: "du-ryeo-um", vi: "So hai", cat: "Cam xuc" },
+    { kr: "외로움", roman: "oe-ro-um", vi: "Co don", cat: "Cam xuc" },
+    { kr: "걱정", roman: "geok-jeong", vi: "Lo lang", cat: "Cam xuc" },
+    { kr: "놀람", roman: "nol-lam", vi: "Ngac nhien", cat: "Cam xuc" },
+    { kr: "설렘", roman: "seol-lem", vi: "Hoi hop", cat: "Cam xuc" },
+    { kr: "그리움", roman: "geu-ri-um", vi: "Nho nhung", cat: "Cam xuc" },
+    { kr: "감동", roman: "gam-dong", vi: "Cam dong", cat: "Cam xuc" },
+    { kr: "짜증", roman: "jja-jeung", vi: "Kho chiu", cat: "Cam xuc" },
+    { kr: "희망", roman: "hui-mang", vi: "Hy vong", cat: "Cam xuc" },
+
+    // === Quan he (Relationships) - 15 words ===
+    { kr: "가족", roman: "ga-jok", vi: "Gia dinh", cat: "Quan he" },
+    { kr: "친구", roman: "chin-gu", vi: "Ban be", cat: "Quan he" },
+    { kr: "엄마", roman: "eom-ma", vi: "Me", cat: "Quan he" },
+    { kr: "아빠", roman: "a-ppa", vi: "Bo", cat: "Quan he" },
+    { kr: "형", roman: "hyeong", vi: "Anh trai (nam goi)", cat: "Quan he" },
+    { kr: "누나", roman: "nu-na", vi: "Chi gai (nam goi)", cat: "Quan he" },
+    { kr: "오빠", roman: "o-ppa", vi: "Anh trai (nu goi)", cat: "Quan he" },
+    { kr: "언니", roman: "eon-ni", vi: "Chi gai (nu goi)", cat: "Quan he" },
+    { kr: "동생", roman: "dong-saeng", vi: "Em", cat: "Quan he" },
+    { kr: "선생님", roman: "seon-saeng-nim", vi: "Thay/Co giao", cat: "Quan he" },
+    { kr: "학생", roman: "hak-saeng", vi: "Hoc sinh", cat: "Quan he" },
+    { kr: "남자친구", roman: "nam-ja-chin-gu", vi: "Ban trai", cat: "Quan he" },
+    { kr: "여자친구", roman: "yeo-ja-chin-gu", vi: "Ban gai", cat: "Quan he" },
+    { kr: "할아버지", roman: "hal-a-beo-ji", vi: "Ong noi/ngoai", cat: "Quan he" },
+
+    // === Co ban (Basics) - 15 words ===
+    { kr: "저", roman: "jeo", vi: "Toi (lich su)", cat: "Co ban" },
+    { kr: "나", roman: "na", vi: "Toi (than mat)", cat: "Co ban" },
+    { kr: "너", roman: "neo", vi: "Ban (than mat)", cat: "Co ban" },
+    { kr: "이것", roman: "i-geot", vi: "Cai nay", cat: "Co ban" },
+    { kr: "그것", roman: "geu-geot", vi: "Cai do", cat: "Co ban" },
+    { kr: "저것", roman: "jeo-geot", vi: "Cai kia", cat: "Co ban" },
+    { kr: "뭐", roman: "mwo", vi: "Cai gi", cat: "Co ban" },
+    { kr: "어디", roman: "eo-di", vi: "O dau", cat: "Co ban" },
+    { kr: "언제", roman: "eon-je", vi: "Khi nao", cat: "Co ban" },
+    { kr: "왜", roman: "wae", vi: "Tai sao", cat: "Co ban" },
+    { kr: "어떻게", roman: "eo-tteo-ke", vi: "Nhu the nao", cat: "Co ban" },
+    { kr: "얼마", roman: "eol-ma", vi: "Bao nhieu", cat: "Co ban" },
+    { kr: "누구", roman: "nu-gu", vi: "Ai", cat: "Co ban" },
+    { kr: "여기", roman: "yeo-gi", vi: "O day", cat: "Co ban" },
+
+    // === Dia diem (Places) - 15 words ===
+    { kr: "학교", roman: "hak-gyo", vi: "Truong hoc", cat: "Dia diem" },
+    { kr: "집", roman: "jip", vi: "Nha", cat: "Dia diem" },
+    { kr: "병원", roman: "byeong-won", vi: "Benh vien", cat: "Dia diem" },
+    { kr: "공항", roman: "gong-hang", vi: "San bay", cat: "Dia diem" },
+    { kr: "식당", roman: "sik-dang", vi: "Nha hang", cat: "Dia diem" },
+    { kr: "카페", roman: "ka-pe", vi: "Quan ca phe", cat: "Dia diem" },
+    { kr: "은행", roman: "eun-haeng", vi: "Ngan hang", cat: "Dia diem" },
+    { kr: "서점", roman: "seo-jeom", vi: "Nha sach", cat: "Dia diem" },
+    { kr: "공원", roman: "gong-won", vi: "Cong vien", cat: "Dia diem" },
+    { kr: "시장", roman: "si-jang", vi: "Cho", cat: "Dia diem" },
+    { kr: "호텔", roman: "ho-tel", vi: "Khach san", cat: "Dia diem" },
+    { kr: "회사", roman: "hoe-sa", vi: "Cong ty", cat: "Dia diem" },
+    { kr: "도서관", roman: "do-seo-gwan", vi: "Thu vien", cat: "Dia diem" },
+    { kr: "편의점", roman: "pyeon-ui-jeom", vi: "Cua hang tien loi", cat: "Dia diem" },
+
+    // === Do an (Food) - 15 words ===
+    { kr: "밥", roman: "bap", vi: "Com", cat: "Do an" },
+    { kr: "물", roman: "mul", vi: "Nuoc", cat: "Do an" },
+    { kr: "김치", roman: "gim-chi", vi: "Kim chi", cat: "Do an" },
+    { kr: "불고기", roman: "bul-go-gi", vi: "Thit nuong Han Quoc", cat: "Do an" },
+    { kr: "라면", roman: "ra-myeon", vi: "Mi an lien", cat: "Do an" },
+    { kr: "비빔밥", roman: "bi-bim-bap", vi: "Com tron Han Quoc", cat: "Do an" },
+    { kr: "치킨", roman: "chi-kin", vi: "Ga ran", cat: "Do an" },
+    { kr: "떡볶이", roman: "tteok-bo-kki", vi: "Banh gao cay", cat: "Do an" },
+    { kr: "과일", roman: "gwa-il", vi: "Trai cay", cat: "Do an" },
+    { kr: "고기", roman: "go-gi", vi: "Thit", cat: "Do an" },
+    { kr: "커피", roman: "keo-pi", vi: "Ca phe", cat: "Do an" },
+    { kr: "빵", roman: "ppang", vi: "Banh mi", cat: "Do an" },
+    { kr: "우유", roman: "u-yu", vi: "Sua", cat: "Do an" },
+    { kr: "야채", roman: "ya-chae", vi: "Rau cu", cat: "Do an" },
+
+    // === Giai tri (Entertainment) - 15 words ===
+    { kr: "영화", roman: "yeong-hwa", vi: "Phim", cat: "Giai tri" },
+    { kr: "음악", roman: "eum-ak", vi: "Am nhac", cat: "Giai tri" },
+    { kr: "게임", roman: "ge-im", vi: "Tro choi", cat: "Giai tri" },
+    { kr: "드라마", roman: "deu-ra-ma", vi: "Phim truyen hinh", cat: "Giai tri" },
+    { kr: "노래", roman: "no-rae", vi: "Bai hat", cat: "Giai tri" },
+    { kr: "춤", roman: "chum", vi: "Nhay mua", cat: "Giai tri" },
+    { kr: "책", roman: "chaek", vi: "Sach", cat: "Giai tri" },
+    { kr: "여행", roman: "yeo-haeng", vi: "Du lich", cat: "Giai tri" },
+    { kr: "사진", roman: "sa-jin", vi: "Anh chup", cat: "Giai tri" },
+    { kr: "텔레비전", roman: "tel-le-bi-jeon", vi: "Ti vi", cat: "Giai tri" },
+    { kr: "만화", roman: "man-hwa", vi: "Truyen tranh", cat: "Giai tri" },
+    { kr: "콘서트", roman: "kon-seo-teu", vi: "Buoi hoa nhac", cat: "Giai tri" },
+    { kr: "노래방", roman: "no-rae-bang", vi: "Phong hat karaoke", cat: "Giai tri" },
+    { kr: "인터넷", roman: "in-teo-net", vi: "Internet", cat: "Giai tri" },
+
+    // === Tinh tu (Adjectives) - 15 words ===
+    { kr: "예쁘다", roman: "ye-ppeu-da", vi: "Dep", cat: "Tinh tu" },
+    { kr: "맛있다", roman: "ma-sit-da", vi: "Ngon", cat: "Tinh tu" },
+    { kr: "크다", roman: "keu-da", vi: "To / Lon", cat: "Tinh tu" },
+    { kr: "작다", roman: "jak-da", vi: "Nho / Be", cat: "Tinh tu" },
+    { kr: "좋다", roman: "jo-ta", vi: "Tot", cat: "Tinh tu" },
+    { kr: "나쁘다", roman: "na-ppeu-da", vi: "Xau / Te", cat: "Tinh tu" },
+    { kr: "빠르다", roman: "ppa-reu-da", vi: "Nhanh", cat: "Tinh tu" },
+    { kr: "느리다", roman: "neu-ri-da", vi: "Cham", cat: "Tinh tu" },
+    { kr: "뜨겁다", roman: "tteu-geop-da", vi: "Nong", cat: "Tinh tu" },
+    { kr: "차갑다", roman: "cha-gap-da", vi: "Lanh", cat: "Tinh tu" },
+    { kr: "귀엽다", roman: "gwi-yeop-da", vi: "De thuong", cat: "Tinh tu" },
+    { kr: "멋있다", roman: "meo-sit-da", vi: "Dep trai / Phong do", cat: "Tinh tu" },
+    { kr: "재미있다", roman: "jae-mi-it-da", vi: "Thu vi", cat: "Tinh tu" },
+    { kr: "쉽다", roman: "swip-da", vi: "De", cat: "Tinh tu" },
+
+    // === Hanh dong (Actions/Verbs) - 20 words ===
+    { kr: "가다", roman: "ga-da", vi: "Di", cat: "Hanh dong" },
+    { kr: "오다", roman: "o-da", vi: "Den", cat: "Hanh dong" },
+    { kr: "먹다", roman: "meok-da", vi: "An", cat: "Hanh dong" },
+    { kr: "마시다", roman: "ma-si-da", vi: "Uong", cat: "Hanh dong" },
+    { kr: "보다", roman: "bo-da", vi: "Xem / Nhin", cat: "Hanh dong" },
+    { kr: "듣다", roman: "deut-da", vi: "Nghe", cat: "Hanh dong" },
+    { kr: "말하다", roman: "mal-ha-da", vi: "Noi", cat: "Hanh dong" },
+    { kr: "읽다", roman: "ik-da", vi: "Doc", cat: "Hanh dong" },
+    { kr: "쓰다", roman: "sseu-da", vi: "Viet", cat: "Hanh dong" },
+    { kr: "자다", roman: "ja-da", vi: "Ngu", cat: "Hanh dong" },
+    { kr: "일어나다", roman: "i-reo-na-da", vi: "Thuc day", cat: "Hanh dong" },
+    { kr: "공부하다", roman: "gong-bu-ha-da", vi: "Hoc", cat: "Hanh dong" },
+    { kr: "일하다", roman: "il-ha-da", vi: "Lam viec", cat: "Hanh dong" },
+    { kr: "사다", roman: "sa-da", vi: "Mua", cat: "Hanh dong" },
+    { kr: "팔다", roman: "pal-da", vi: "Ban", cat: "Hanh dong" },
+    { kr: "만나다", roman: "man-na-da", vi: "Gap", cat: "Hanh dong" },
+    { kr: "기다리다", roman: "gi-da-ri-da", vi: "Cho doi", cat: "Hanh dong" },
+    { kr: "걷다", roman: "geot-da", vi: "Di bo", cat: "Hanh dong" },
+
+    // === Tu nhien (Nature) - 15 words ===
+    { kr: "하늘", roman: "ha-neul", vi: "Bau troi", cat: "Tu nhien" },
+    { kr: "바다", roman: "ba-da", vi: "Bien", cat: "Tu nhien" },
+    { kr: "산", roman: "san", vi: "Nui", cat: "Tu nhien" },
+    { kr: "꽃", roman: "kkot", vi: "Hoa", cat: "Tu nhien" },
+    { kr: "나무", roman: "na-mu", vi: "Cay", cat: "Tu nhien" },
+    { kr: "비", roman: "bi", vi: "Mua", cat: "Tu nhien" },
+    { kr: "눈", roman: "nun", vi: "Tuyet", cat: "Tu nhien" },
+    { kr: "바람", roman: "ba-ram", vi: "Gio", cat: "Tu nhien" },
+    { kr: "별", roman: "byeol", vi: "Ngoi sao", cat: "Tu nhien" },
+    { kr: "달", roman: "dal", vi: "Mat trang", cat: "Tu nhien" },
+    { kr: "해", roman: "hae", vi: "Mat troi", cat: "Tu nhien" },
+    { kr: "강", roman: "gang", vi: "Song", cat: "Tu nhien" },
+    { kr: "구름", roman: "gu-reum", vi: "May", cat: "Tu nhien" },
+    { kr: "숲", roman: "sup", vi: "Rung", cat: "Tu nhien" },
+
+    // === Dong vat (Animals) - 15 words ===
+    { kr: "강아지", roman: "gang-a-ji", vi: "Cho con", cat: "Dong vat" },
+    { kr: "고양이", roman: "go-yang-i", vi: "Meo", cat: "Dong vat" },
+    { kr: "새", roman: "sae", vi: "Chim", cat: "Dong vat" },
+    { kr: "물고기", roman: "mul-go-gi", vi: "Ca", cat: "Dong vat" },
+    { kr: "토끼", roman: "to-kki", vi: "Tho", cat: "Dong vat" },
+    { kr: "곰", roman: "gom", vi: "Gau", cat: "Dong vat" },
+    { kr: "호랑이", roman: "ho-rang-i", vi: "Ho", cat: "Dong vat" },
+    { kr: "사자", roman: "sa-ja", vi: "Su tu", cat: "Dong vat" },
+    { kr: "코끼리", roman: "ko-kki-ri", vi: "Voi", cat: "Dong vat" },
+    { kr: "원숭이", roman: "won-sung-i", vi: "Khi", cat: "Dong vat" },
+    { kr: "뱀", roman: "baem", vi: "Ran", cat: "Dong vat" },
+    { kr: "돼지", roman: "dwae-ji", vi: "Heo / Lon", cat: "Dong vat" },
+    { kr: "소", roman: "so", vi: "Bo", cat: "Dong vat" },
+
+    // === Thoi gian (Time) - 15 words ===
+    { kr: "오늘", roman: "o-neul", vi: "Hom nay", cat: "Thoi gian" },
+    { kr: "내일", roman: "nae-il", vi: "Ngay mai", cat: "Thoi gian" },
+    { kr: "어제", roman: "eo-je", vi: "Hom qua", cat: "Thoi gian" },
+    { kr: "지금", roman: "ji-geum", vi: "Bay gio", cat: "Thoi gian" },
+    { kr: "아침", roman: "a-chim", vi: "Buoi sang", cat: "Thoi gian" },
+    { kr: "점심", roman: "jeom-sim", vi: "Buoi trua", cat: "Thoi gian" },
+    { kr: "저녁", roman: "jeo-nyeok", vi: "Buoi toi", cat: "Thoi gian" },
+    { kr: "밤", roman: "bam", vi: "Ban dem", cat: "Thoi gian" },
+    { kr: "주말", roman: "ju-mal", vi: "Cuoi tuan", cat: "Thoi gian" },
+    { kr: "월요일", roman: "wol-yo-il", vi: "Thu hai", cat: "Thoi gian" },
+    { kr: "년", roman: "nyeon", vi: "Nam", cat: "Thoi gian" },
+    { kr: "월", roman: "wol", vi: "Thang", cat: "Thoi gian" },
+    { kr: "일", roman: "il", vi: "Ngay", cat: "Thoi gian" },
+    { kr: "시간", roman: "si-gan", vi: "Gio / Thoi gian", cat: "Thoi gian" },
+
+    // === Do vat (Objects) - 15 words ===
+    { kr: "가방", roman: "ga-bang", vi: "Tui xach", cat: "Do vat" },
+    { kr: "신발", roman: "sin-bal", vi: "Giay dep", cat: "Do vat" },
+    { kr: "옷", roman: "ot", vi: "Quan ao", cat: "Do vat" },
+    { kr: "모자", roman: "mo-ja", vi: "Mu non", cat: "Do vat" },
+    { kr: "시계", roman: "si-gye", vi: "Dong ho", cat: "Do vat" },
+    { kr: "우산", roman: "u-san", vi: "Du / O", cat: "Do vat" },
+    { kr: "열쇠", roman: "yeol-soe", vi: "Chia khoa", cat: "Do vat" },
+    { kr: "컴퓨터", roman: "keom-pyu-teo", vi: "May tinh", cat: "Do vat" },
+    { kr: "의자", roman: "ui-ja", vi: "Ghe", cat: "Do vat" },
+    { kr: "책상", roman: "chaek-sang", vi: "Ban hoc", cat: "Do vat" },
+    { kr: "창문", roman: "chang-mun", vi: "Cua so", cat: "Do vat" },
+    { kr: "문", roman: "mun", vi: "Cua", cat: "Do vat" },
+    { kr: "거울", roman: "geo-ul", vi: "Guong", cat: "Do vat" },
+
+    // === Co the (Body) - 15 words ===
+    { kr: "머리", roman: "meo-ri", vi: "Dau", cat: "Co the" },
+    { kr: "눈", roman: "nun", vi: "Mat", cat: "Co the" },
+    { kr: "코", roman: "ko", vi: "Mui", cat: "Co the" },
+    { kr: "입", roman: "ip", vi: "Mieng", cat: "Co the" },
+    { kr: "귀", roman: "gwi", vi: "Tai", cat: "Co the" },
+    { kr: "손", roman: "son", vi: "Tay (ban tay)", cat: "Co the" },
+    { kr: "발", roman: "bal", vi: "Chan (ban chan)", cat: "Co the" },
+    { kr: "다리", roman: "da-ri", vi: "Chan", cat: "Co the" },
+    { kr: "팔", roman: "pal", vi: "Canh tay", cat: "Co the" },
+    { kr: "얼굴", roman: "eol-gul", vi: "Khuon mat", cat: "Co the" },
+    { kr: "배", roman: "bae", vi: "Bung", cat: "Co the" },
+    { kr: "등", roman: "deung", vi: "Lung", cat: "Co the" },
+    { kr: "어깨", roman: "eo-kkae", vi: "Vai", cat: "Co the" },
+
+    // === K-POP - 35 words ===
+    { kr: "아이돌", roman: "a-i-dol", vi: "Than tuong", cat: "K-POP" },
+    { kr: "팬", roman: "paen", vi: "Nguoi ham mo", cat: "K-POP" },
+    { kr: "컴백", roman: "keom-baek", vi: "Tro lai (comeback)", cat: "K-POP" },
+    { kr: "데뷔", roman: "de-bwi", vi: "Ra mat (debut)", cat: "K-POP" },
+    { kr: "뮤직비디오", roman: "myu-jik-bi-di-o", vi: "Video am nhac (MV)", cat: "K-POP" },
+    { kr: "안무", roman: "an-mu", vi: "Vu dao", cat: "K-POP" },
+    { kr: "팬미팅", roman: "paen-mi-ting", vi: "Buoi gap mat fan", cat: "K-POP" },
+    { kr: "음원", roman: "eum-won", vi: "Nhac so", cat: "K-POP" },
+    { kr: "앨범", roman: "ael-beom", vi: "Album", cat: "K-POP" },
+    { kr: "가수", roman: "ga-su", vi: "Ca si", cat: "K-POP" },
+    { kr: "리더", roman: "ri-deo", vi: "Truong nhom", cat: "K-POP" },
+    { kr: "멤버", roman: "mem-beo", vi: "Thanh vien", cat: "K-POP" },
+    { kr: "무대", roman: "mu-dae", vi: "San khau", cat: "K-POP" },
+    { kr: "연습생", roman: "yeon-seup-saeng", vi: "Thuc tap sinh", cat: "K-POP" },
+    { kr: "소속사", roman: "so-sok-sa", vi: "Cong ty quan ly", cat: "K-POP" },
+    { kr: "팬클럽", roman: "paen-keul-leop", vi: "Cau lac bo fan", cat: "K-POP" },
+    { kr: "포토카드", roman: "po-to-ka-deu", vi: "The anh (photocard)", cat: "K-POP" },
+    { kr: "응원봉", roman: "eung-won-bong", vi: "Gay co vu (lightstick)", cat: "K-POP" },
+    { kr: "사인", roman: "sa-in", vi: "Chu ky", cat: "K-POP" },
+    { kr: "오디션", roman: "o-di-syeon", vi: "Vong tuyen chon", cat: "K-POP" },
+    { kr: "타이틀곡", roman: "ta-i-teul-gok", vi: "Bai hat chu de", cat: "K-POP" },
+    { kr: "비주얼", roman: "bi-ju-eol", vi: "Ngoai hinh (visual)", cat: "K-POP" },
+    { kr: "메인보컬", roman: "me-in-bo-keol", vi: "Giong hat chinh", cat: "K-POP" },
+    { kr: "래퍼", roman: "rae-peo", vi: "Nguoi hat rap", cat: "K-POP" },
+    { kr: "센터", roman: "sen-teo", vi: "Vi tri trung tam", cat: "K-POP" },
+    { kr: "댄서", roman: "daen-seo", vi: "Vu cong", cat: "K-POP" },
+    { kr: "팬덤", roman: "paen-deom", vi: "Cong dong fan", cat: "K-POP" },
+    { kr: "총공", roman: "chong-gong", vi: "Tong tan cong (streaming)", cat: "K-POP" },
+    { kr: "스밍", roman: "seu-ming", vi: "Nghe nhac lien tuc (streaming)", cat: "K-POP" },
+    { kr: "최애", roman: "choe-ae", vi: "Than tuong yeu thich nhat (bias)", cat: "K-POP" },
+    { kr: "덕질", roman: "deok-jil", vi: "Hoat dong fan", cat: "K-POP" },
+    { kr: "떡상", roman: "tteok-sang", vi: "Tang manh (viral)", cat: "K-POP" },
+    { kr: "연예인", roman: "yeon-ye-in", vi: "Nghe si giai tri", cat: "K-POP" },
+
+    // === Mau sac (Colors) - 12 words ===
+    { kr: "빨간색", roman: "ppal-gan-saek", vi: "Mau do", cat: "Mau sac" },
+    { kr: "파란색", roman: "pa-ran-saek", vi: "Mau xanh duong", cat: "Mau sac" },
+    { kr: "노란색", roman: "no-ran-saek", vi: "Mau vang", cat: "Mau sac" },
+    { kr: "초록색", roman: "cho-rok-saek", vi: "Mau xanh la", cat: "Mau sac" },
+    { kr: "하얀색", roman: "ha-yan-saek", vi: "Mau trang", cat: "Mau sac" },
+    { kr: "검은색", roman: "geom-eun-saek", vi: "Mau den", cat: "Mau sac" },
+    { kr: "주황색", roman: "ju-hwang-saek", vi: "Mau cam", cat: "Mau sac" },
+    { kr: "보라색", roman: "bo-ra-saek", vi: "Mau tim", cat: "Mau sac" },
+    { kr: "분홍색", roman: "bun-hong-saek", vi: "Mau hong", cat: "Mau sac" },
+    { kr: "갈색", roman: "gal-saek", vi: "Mau nau", cat: "Mau sac" },
+    { kr: "회색", roman: "hoe-saek", vi: "Mau xam", cat: "Mau sac" },
+    { kr: "금색", roman: "geum-saek", vi: "Mau vang kim", cat: "Mau sac" },
+
+    // === So dem (Numbers) - 13 words ===
+    { kr: "하나", roman: "ha-na", vi: "Mot (1)", cat: "So dem" },
+    { kr: "둘", roman: "dul", vi: "Hai (2)", cat: "So dem" },
+    { kr: "셋", roman: "set", vi: "Ba (3)", cat: "So dem" },
+    { kr: "넷", roman: "net", vi: "Bon (4)", cat: "So dem" },
+    { kr: "다섯", roman: "da-seot", vi: "Nam (5)", cat: "So dem" },
+    { kr: "여섯", roman: "yeo-seot", vi: "Sau (6)", cat: "So dem" },
+    { kr: "일곱", roman: "il-gop", vi: "Bay (7)", cat: "So dem" },
+    { kr: "여덟", roman: "yeo-deol", vi: "Tam (8)", cat: "So dem" },
+    { kr: "아홉", roman: "a-hop", vi: "Chin (9)", cat: "So dem" },
+    { kr: "열", roman: "yeol", vi: "Muoi (10)", cat: "So dem" },
+    { kr: "백", roman: "baek", vi: "Tram (100)", cat: "So dem" },
+    { kr: "천", roman: "cheon", vi: "Nghin (1000)", cat: "So dem" },
+    { kr: "만", roman: "man", vi: "Van (10000)", cat: "So dem" },
+
+    // === Giao thong (Transportation) - 15 words ===
+    { kr: "자동차", roman: "ja-dong-cha", vi: "O to", cat: "Giao thong" },
+    { kr: "버스", roman: "beo-seu", vi: "Xe buyt", cat: "Giao thong" },
+    { kr: "지하철", roman: "ji-ha-cheol", vi: "Tau dien ngam", cat: "Giao thong" },
+    { kr: "택시", roman: "taek-si", vi: "Taxi", cat: "Giao thong" },
+    { kr: "비행기", roman: "bi-haeng-gi", vi: "May bay", cat: "Giao thong" },
+    { kr: "기차", roman: "gi-cha", vi: "Tau hoa", cat: "Giao thong" },
+    { kr: "자전거", roman: "ja-jeon-geo", vi: "Xe dap", cat: "Giao thong" },
+    { kr: "배", roman: "bae", vi: "Tau / Thuyen", cat: "Giao thong" },
+    { kr: "오토바이", roman: "o-to-ba-i", vi: "Xe may", cat: "Giao thong" },
+    { kr: "길", roman: "gil", vi: "Duong", cat: "Giao thong" },
+    { kr: "신호등", roman: "sin-ho-deung", vi: "Den giao thong", cat: "Giao thong" },
+    { kr: "주차장", roman: "ju-cha-jang", vi: "Bai dau xe", cat: "Giao thong" },
+    { kr: "운전", roman: "un-jeon", vi: "Lai xe", cat: "Giao thong" },
+    { kr: "표", roman: "pyo", vi: "Ve", cat: "Giao thong" },
+    { kr: "도로", roman: "do-ro", vi: "Duong lon", cat: "Giao thong" },
+
+    // === Mua sam (Shopping) - 15 words ===
+    { kr: "가격", roman: "ga-gyeok", vi: "Gia ca", cat: "Mua sam" },
+    { kr: "할인", roman: "hal-in", vi: "Giam gia", cat: "Mua sam" },
+    { kr: "돈", roman: "don", vi: "Tien", cat: "Mua sam" },
+    { kr: "신용카드", roman: "sin-yong-ka-deu", vi: "The tin dung", cat: "Mua sam" },
+    { kr: "영수증", roman: "yeong-su-jeung", vi: "Hoa don", cat: "Mua sam" },
+    { kr: "사이즈", roman: "sa-i-jeu", vi: "Kich co", cat: "Mua sam" },
+    { kr: "교환", roman: "gyo-hwan", vi: "Doi hang", cat: "Mua sam" },
+    { kr: "환불", roman: "hwan-bul", vi: "Hoan tien", cat: "Mua sam" },
+    { kr: "계산", roman: "gye-san", vi: "Tinh tien", cat: "Mua sam" },
+    { kr: "백화점", roman: "baek-hwa-jeom", vi: "Trung tam thuong mai", cat: "Mua sam" },
+    { kr: "선물", roman: "seon-mul", vi: "Qua tang", cat: "Mua sam" },
+    { kr: "포장", roman: "po-jang", vi: "Goi hang", cat: "Mua sam" },
+    { kr: "무료", roman: "mu-ryo", vi: "Mien phi", cat: "Mua sam" },
+    { kr: "비싸다", roman: "bi-ssa-da", vi: "Dat (gia)", cat: "Mua sam" },
+    { kr: "싸다", roman: "ssa-da", vi: "Re", cat: "Mua sam" },
+
+    // === The thao (Sports) - 15 words ===
+    { kr: "축구", roman: "chuk-gu", vi: "Bong da", cat: "The thao" },
+    { kr: "야구", roman: "ya-gu", vi: "Bong chay", cat: "The thao" },
+    { kr: "농구", roman: "nong-gu", vi: "Bong ro", cat: "The thao" },
+    { kr: "수영", roman: "su-yeong", vi: "Boi loi", cat: "The thao" },
+    { kr: "태권도", roman: "tae-gwon-do", vi: "Taekwondo", cat: "The thao" },
+    { kr: "배드민턴", roman: "bae-deu-min-teon", vi: "Cau long", cat: "The thao" },
+    { kr: "테니스", roman: "te-ni-seu", vi: "Tennis", cat: "The thao" },
+    { kr: "탁구", roman: "tak-gu", vi: "Bong ban", cat: "The thao" },
+    { kr: "골프", roman: "gol-peu", vi: "Golf", cat: "The thao" },
+    { kr: "운동", roman: "un-dong", vi: "Tap the duc", cat: "The thao" },
+    { kr: "달리기", roman: "dal-li-gi", vi: "Chay bo", cat: "The thao" },
+    { kr: "등산", roman: "deung-san", vi: "Leo nui", cat: "The thao" },
+    { kr: "스키", roman: "seu-ki", vi: "Truot tuyet", cat: "The thao" },
+    { kr: "선수", roman: "seon-su", vi: "Van dong vien", cat: "The thao" },
+    { kr: "경기", roman: "gyeong-gi", vi: "Tran dau", cat: "The thao" }
+];
+
+// Teacher reactions
+const correctReactions = [
+    "Tuyet voi! 잘했어요! 👏",
+    "Dung roi! 대단해요! ⭐",
+    "Gioi lam! 최고예요! 🎉",
+    "Chinh xac! 맞아요! ✨",
+    "Hoan hao! 완벽해요! 💖",
+];
+const wrongReactions = [
+    "Khong sao! 다음에 잘해요! 💪",
+    "Co len nhe! 화이팅! 🌟",
+    "Gan dung roi! 거의 맞았어요! 😊",
+];
+
+let gameRunning = false;
+let score = 0, combo = 0, maxCombo = 0;
+let correctCount = 0, totalCount = 0;
+let timeLeft = 50;
+let currentWord = null;
+let timer = null;
+let canAnswer = true;
+
+// Audio
+function playPronunciation() {
+    if (!currentWord) return;
+    const utterance = new SpeechSynthesisUtterance(currentWord.kr);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.8;
+    speechSynthesis.speak(utterance);
+}
+
+function playCorrectSfx() {
+    try {
+        const ctx = new AudioContext();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = 523;
+        g.gain.setValueAtTime(0.1, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); o.stop(ctx.currentTime + 0.15);
+        setTimeout(() => {
+            const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+            o2.type = 'sine'; o2.frequency.value = 659;
+            g2.gain.setValueAtTime(0.1, ctx.currentTime);
+            g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+            o2.connect(g2); g2.connect(ctx.destination);
+            o2.start(); o2.stop(ctx.currentTime + 0.15);
+        }, 80);
+    } catch(e) {}
+}
+
+function playWrongSfx() {
+    try {
+        const ctx = new AudioContext();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'triangle'; o.frequency.value = 200;
+        g.gain.setValueAtTime(0.08, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); o.stop(ctx.currentTime + 0.2);
+    } catch(e) {}
+}
+
+function playComboSfx() {
+    try {
+        const ctx = new AudioContext();
+        [523, 659, 784, 1047].forEach((freq, i) => {
+            const o = ctx.createOscillator(); const g = ctx.createGain();
+            o.type = 'sine'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0.08, ctx.currentTime + i * 0.06);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.12);
+            o.connect(g); g.connect(ctx.destination);
+            o.start(ctx.currentTime + i * 0.06); o.stop(ctx.currentTime + i * 0.06 + 0.12);
+        });
+    } catch(e) {}
+}
+
+// BGM
+let bgmCtx = null, bgmInterval = null, bgmGain = null, bgmPlaying = false;
+function startBGM() {
+    if (bgmPlaying) return;
+    bgmCtx = new (window.AudioContext || window.webkitAudioContext)();
+    bgmGain = bgmCtx.createGain();
+    bgmGain.gain.value = 0.25;
+    bgmGain.connect(bgmCtx.destination);
+    bgmPlaying = true;
+    let beat = 0;
+    const melody = [392, 440, 494, 523, 587, 523, 494, 440, 392, 349, 330, 349, 392, 440, 494, 523];
+    const bass = [196, 196, 220, 220, 262, 262, 247, 247, 196, 196, 220, 220, 262, 262, 247, 247];
+    const bpm = 130;
+    const beatMs = 60000 / bpm;
+
+    bgmInterval = setInterval(() => {
+        if (!bgmCtx) return;
+        const idx = beat % 16;
+        const t = bgmCtx.currentTime;
+
+        // Melody - light piano feel
+        const melOsc = bgmCtx.createOscillator();
+        const melG = bgmCtx.createGain();
+        melOsc.type = 'sine';
+        melOsc.frequency.value = melody[idx];
+        melG.gain.setValueAtTime(0.05, t);
+        melG.gain.exponentialRampToValueAtTime(0.001, t + beatMs/1000 * 0.7);
+        melOsc.connect(melG); melG.connect(bgmGain);
+        melOsc.start(t); melOsc.stop(t + beatMs/1000 * 0.7);
+
+        // Soft bass
+        const bassOsc = bgmCtx.createOscillator();
+        const bassG = bgmCtx.createGain();
+        bassOsc.type = 'triangle';
+        bassOsc.frequency.value = bass[idx];
+        bassG.gain.setValueAtTime(0.06, t);
+        bassG.gain.exponentialRampToValueAtTime(0.001, t + beatMs/1000 * 0.8);
+        bassOsc.connect(bassG); bassG.connect(bgmGain);
+        bassOsc.start(t); bassOsc.stop(t + beatMs/1000 * 0.8);
+
+        // Light kick
+        if (idx % 4 === 0) {
+            const kOsc = bgmCtx.createOscillator();
+            const kG = bgmCtx.createGain();
+            kOsc.frequency.setValueAtTime(100, t);
+            kOsc.frequency.exponentialRampToValueAtTime(40, t + 0.06);
+            kG.gain.setValueAtTime(0.08, t);
+            kG.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+            kOsc.connect(kG); kG.connect(bgmGain);
+            kOsc.start(t); kOsc.stop(t + 0.08);
+        }
+
+        // Soft hi-hat
+        if (idx % 2 === 1) {
+            const bufLen = bgmCtx.sampleRate * 0.015;
+            const buf = bgmCtx.createBuffer(1, bufLen, bgmCtx.sampleRate);
+            const d = buf.getChannelData(0);
+            for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1);
+            const hh = bgmCtx.createBufferSource(); hh.buffer = buf;
+            const hhG = bgmCtx.createGain();
+            hhG.gain.setValueAtTime(0.02, t);
+            hhG.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+            const hhF = bgmCtx.createBiquadFilter();
+            hhF.type = 'highpass'; hhF.frequency.value = 8000;
+            hh.connect(hhF); hhF.connect(hhG); hhG.connect(bgmGain);
+            hh.start(t);
+        }
+
+        // Chord on bar start
+        if (idx % 8 === 0) {
+            [1, 1.25, 1.5].forEach(r => {
+                const cOsc = bgmCtx.createOscillator();
+                const cG = bgmCtx.createGain();
+                cOsc.type = 'sine'; cOsc.frequency.value = melody[idx] * r * 0.5;
+                cG.gain.setValueAtTime(0.015, t);
+                cG.gain.exponentialRampToValueAtTime(0.001, t + beatMs/1000 * 3);
+                cOsc.connect(cG); cG.connect(bgmGain);
+                cOsc.start(t); cOsc.stop(t + beatMs/1000 * 3);
+            });
+        }
+        beat++;
+    }, beatMs);
+}
+function stopBGM() {
+    bgmPlaying = false;
+    if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
+    if (bgmGain) try { bgmGain.gain.setValueAtTime(0, bgmCtx.currentTime); } catch(e) {}
+}
+
+function showReaction(correct) {
+    const el = document.getElementById('teacherReaction');
+    const txt = document.getElementById('reactionText');
+    const list = correct ? correctReactions : wrongReactions;
+    txt.textContent = list[Math.floor(Math.random() * list.length)];
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+function getRandomChoices(correctWord) {
+    const others = words.filter(w => w.vi !== correctWord.vi);
+    const shuffled = others.sort(() => Math.random() - 0.5).slice(0, 3);
+    const choices = [...shuffled.map(w => w.vi), correctWord.vi];
+    return choices.sort(() => Math.random() - 0.5);
+}
+
+function showQuestion() {
+    if (!gameRunning) return;
+    canAnswer = true;
+
+    const idx = Math.floor(Math.random() * words.length);
+    currentWord = words[idx];
+
+    document.getElementById('qWord').textContent = currentWord.kr;
+    document.getElementById('qRoman').textContent = currentWord.roman;
+    document.getElementById('qLabel').textContent = `[${currentWord.cat}] Nghia tieng Viet la gi?`;
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('feedback').style.display = 'none';
+
+    const choices = getRandomChoices(currentWord);
+    const area = document.getElementById('choicesArea');
+    area.innerHTML = '';
+    choices.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = c;
+        btn.onclick = () => handleAnswer(btn, c);
+        area.appendChild(btn);
+    });
+
+    // Auto play pronunciation
+    setTimeout(() => playPronunciation(), 300);
+}
+
+function handleAnswer(btn, chosen) {
+    if (!canAnswer || !gameRunning) return;
+    canAnswer = false;
+    totalCount++;
+
+    const isCorrect = chosen === currentWord.vi;
+    const fb = document.getElementById('feedback');
+
+    // Highlight buttons
+    document.querySelectorAll('.choice-btn').forEach(b => {
+        if (b.textContent === currentWord.vi) b.classList.add('show-answer');
+        if (b === btn && !isCorrect) b.classList.add('wrong');
+        if (b === btn && isCorrect) b.classList.add('correct');
+    });
+
+    if (isCorrect) {
+        correctCount++;
+        combo++;
+        if (combo > maxCombo) maxCombo = combo;
+        const comboMultiplier = combo >= 5 ? 3 : combo >= 3 ? 2 : 1;
+        const points = 10 * comboMultiplier;
+        score += points;
+
+        fb.className = 'feedback correct-fb';
+        fb.innerHTML = `✅ ${currentWord.kr} = ${currentWord.vi} (+${points})`;
+        fb.style.display = 'block';
+
+        document.getElementById('scoreDisplay').textContent = score;
+        document.getElementById('comboDisplay').textContent = combo >= 2 ? `${combo} COMBO! x${comboMultiplier}` : '';
+
+        if (combo >= 3) playComboSfx(); else playCorrectSfx();
+        showReaction(true);
+    } else {
+        combo = 0;
+        fb.className = 'feedback wrong-fb';
+        fb.innerHTML = `❌ Dap an: ${currentWord.kr} = ${currentWord.vi}`;
+        fb.style.display = 'block';
+
+        document.getElementById('comboDisplay').textContent = '';
+
+        playWrongSfx();
+        showReaction(false);
+    }
+
+    // Next question after delay
+    setTimeout(() => {
+        if (gameRunning) showQuestion();
+    }, isCorrect ? 800 : 1500);
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function startGame() {
+    score = 0; combo = 0; maxCombo = 0; correctCount = 0; totalCount = 0; timeLeft = 50;
+    gameRunning = true;
+
+    document.getElementById('scoreDisplay').textContent = '0';
+    document.getElementById('comboDisplay').textContent = '';
+    document.getElementById('timerDisplay').textContent = '50';
+    document.getElementById('timerDisplay').className = 'hud-timer';
+
+    showScreen('gameScreen');
+    startBGM();
+    showQuestion();
+
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timerDisplay').textContent = timeLeft;
+        if (timeLeft <= 5) document.getElementById('timerDisplay').className = 'hud-timer urgent';
+        if (timeLeft <= 0) endGame();
+    }, 1000);
+}
+
+function endGame() {
+    gameRunning = false;
+    stopBGM();
+    if (timer) { clearInterval(timer); timer = null; }
+
+    const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+    let msg = '';
+    if (accuracy >= 90) msg = 'Xuat sac! 완벽해요! 🏆';
+    else if (accuracy >= 70) msg = 'Gioi lam! 잘했어요! ⭐';
+    else if (accuracy >= 50) msg = 'Tot lam! 좋아요! 👏';
+    else msg = 'Co len! 화이팅! 💪';
+
+    document.getElementById('resultScore').textContent = score;
+    document.getElementById('resultMsg').textContent = msg;
+    document.getElementById('resultStats').innerHTML =
+        `Dung: ${correctCount}/${totalCount} (${accuracy}%)<br>Combo cao nhat: ${maxCombo}`;
+    document.getElementById('nameArea').style.display = 'flex';
+    document.getElementById('nameInput').value = '';
+
+    // Update team score
+    if (firebaseReady && db) {
+        db.ref('haneul_team_total').transaction(val => (val || 0) + score);
+        loadTeamScore('endTeamValue');
+    }
+
+    loadRankings('endRanking');
+    showScreen('endScreen');
+}
+
+// Firebase rankings
+function loadRankings(targetId) {
+    if (firebaseReady && db) {
+        db.ref('haneul_rankings').orderByChild('score').limitToLast(10).once('value', snap => {
+            renderRankings(snap.val(), targetId, -1);
+        });
+    } else {
+        renderRankings(null, targetId, -1);
+    }
+}
+
+function renderRankings(data, targetId, myScore) {
+    const list = document.getElementById(targetId);
+    list.innerHTML = '';
+    const rankings = data ? Object.values(data).sort((a, b) => b.score - a.score) : [];
+    if (rankings.length === 0) {
+        list.innerHTML = '<li style="justify-content:center;color:#999;">Chua co ket qua</li>';
+        return;
+    }
+    rankings.slice(0, 10).forEach((r, i) => {
+        const li = document.createElement('li');
+        if (r.score === myScore && r.mine) li.className = 'mine';
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
+        li.innerHTML = `<span class="rank">${medal}</span><span class="name">${r.name}</span><span class="pts">${r.score}</span>`;
+        list.appendChild(li);
+    });
+}
+
+function submitScore() {
+    const name = document.getElementById('nameInput').value.trim() || 'Anonymous';
+    if (firebaseReady && db) {
+        db.ref('haneul_rankings').push({ name, score, timestamp: Date.now() }).then(() => {
+            db.ref('haneul_rankings').orderByChild('score').limitToLast(10).once('value', snap => {
+                renderRankings(snap.val(), 'endRanking', score);
+            });
+        });
+    }
+    document.getElementById('nameArea').style.display = 'none';
+}
+
+function loadTeamScore(targetId) {
+    if (firebaseReady && db) {
+        db.ref('haneul_team_total').once('value', snap => {
+            document.getElementById(targetId).textContent = (snap.val() || 0).toLocaleString();
+        });
+    }
+}
+
+// Init
+loadRankings('startRanking');
+loadTeamScore('startTeamValue');
+
+</script>
+</body>
+</html>
