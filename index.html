@@ -248,6 +248,7 @@
     </div>
 </div>
 
+<script src="https://code.responsivevoice.org/responsivevoice.js?key=pVaBMnjp"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
@@ -634,30 +635,19 @@ let currentWord = null;
 let timer = null;
 let canAnswer = true;
 
-// Audio - Google TTS with Web Speech API fallback
+// Audio - ResponsiveVoice (works on all mobile)
 function playPronunciation() {
     if (!currentWord) return;
-    try {
-        const audio = new Audio('https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=' + encodeURIComponent(currentWord.kr));
-        audio.volume = 1.0;
-        audio.play().catch(function() {
-            // Fallback to Web Speech API
-            try {
-                const u = new SpeechSynthesisUtterance(currentWord.kr);
-                u.lang = 'ko-KR';
-                u.rate = 0.8;
-                speechSynthesis.cancel();
-                speechSynthesis.speak(u);
-            } catch(e2) {}
-        });
-    } catch(e) {
+    if (typeof responsiveVoice !== 'undefined') {
+        responsiveVoice.speak(currentWord.kr, 'Korean Female', {rate: 0.9, volume: 1});
+    } else {
+        // Final fallback
         try {
             const u = new SpeechSynthesisUtterance(currentWord.kr);
-            u.lang = 'ko-KR';
-            u.rate = 0.8;
+            u.lang = 'ko-KR'; u.rate = 0.8;
             speechSynthesis.cancel();
             speechSynthesis.speak(u);
-        } catch(e2) {}
+        } catch(e) {}
     }
 }
 
