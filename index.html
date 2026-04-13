@@ -634,13 +634,31 @@ let currentWord = null;
 let timer = null;
 let canAnswer = true;
 
-// Audio
+// Audio - Google TTS with Web Speech API fallback
 function playPronunciation() {
     if (!currentWord) return;
-    const utterance = new SpeechSynthesisUtterance(currentWord.kr);
-    utterance.lang = 'ko-KR';
-    utterance.rate = 0.8;
-    speechSynthesis.speak(utterance);
+    try {
+        const audio = new Audio('https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=' + encodeURIComponent(currentWord.kr));
+        audio.volume = 1.0;
+        audio.play().catch(function() {
+            // Fallback to Web Speech API
+            try {
+                const u = new SpeechSynthesisUtterance(currentWord.kr);
+                u.lang = 'ko-KR';
+                u.rate = 0.8;
+                speechSynthesis.cancel();
+                speechSynthesis.speak(u);
+            } catch(e2) {}
+        });
+    } catch(e) {
+        try {
+            const u = new SpeechSynthesisUtterance(currentWord.kr);
+            u.lang = 'ko-KR';
+            u.rate = 0.8;
+            speechSynthesis.cancel();
+            speechSynthesis.speak(u);
+        } catch(e2) {}
+    }
 }
 
 function playCorrectSfx() {
