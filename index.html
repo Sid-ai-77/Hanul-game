@@ -206,7 +206,7 @@
             <div class="question-label" id="qLabel">Han quoc ngu la gi?</div>
             <div class="question-word" id="qWord">사랑</div>
             <div class="question-romanization" id="qRoman">sa-rang</div>
-            <button class="sound-btn" onclick="playPronunciation()">&#128266;</button>
+            <button class="sound-btn" onclick="playSound()">&#128266;</button>
         </div>
 
         <div class="choices" id="choicesArea" style="width:100%;"></div>
@@ -634,52 +634,34 @@ let currentWord = null;
 let timer = null;
 let canAnswer = true;
 
-// Audio - Mobile-friendly TTS
-let audioUnlocked = false;
-let ttsAudio = null;
-
-function unlockAudio() {
-    if (audioUnlocked) return;
-    // Create and play silent audio to unlock mobile audio context
-    ttsAudio = new Audio();
-    ttsAudio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAgAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAbC5CQMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+M4wAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+M4wDkAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
-    ttsAudio.play().then(() => { audioUnlocked = true; }).catch(() => {});
-    
-    // Also unlock speechSynthesis
-    try {
-        const u = new SpeechSynthesisUtterance('');
-        u.volume = 0;
-        speechSynthesis.speak(u);
-    } catch(e) {}
-}
-
-function playPronunciation() {
+// Audio - Simple approach for Android
+function playSound() {
     if (!currentWord) return;
-    
-    // Method 1: speechSynthesis (direct in click handler)
-    try {
-        speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(currentWord.kr);
-        u.lang = 'ko-KR';
-        u.rate = 0.8;
-        u.volume = 1.0;
-        
-        // Try to find Korean voice
-        const voices = speechSynthesis.getVoices();
-        const koVoice = voices.find(v => v.lang.startsWith('ko'));
-        if (koVoice) u.voice = koVoice;
-        
-        speechSynthesis.speak(u);
-    } catch(e) {
-        console.log('TTS failed:', e);
+    var text = currentWord.kr;
+
+    // Create audio element with Google TTS
+    var a = document.createElement('audio');
+    a.src = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=' + encodeURIComponent(text);
+    a.setAttribute('playsinline', '');
+    a.volume = 1.0;
+
+    var playPromise = a.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(function() {
+            // If Google TTS blocked, try speechSynthesis
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                var msg = new SpeechSynthesisUtterance(text);
+                msg.lang = 'ko-KR';
+                msg.rate = 0.8;
+                window.speechSynthesis.speak(msg);
+            }
+        });
     }
 }
 
-// Pre-load voices
-if (typeof speechSynthesis !== 'undefined') {
-    speechSynthesis.getVoices();
-    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
-}
+// Keep old name for compatibility
+function playPronunciation() { playSound(); }
 
 function playCorrectSfx() {
     try {
