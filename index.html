@@ -248,7 +248,6 @@
     </div>
 </div>
 
-<script src="https://code.responsivevoice.org/responsivevoice.js?key=pVaBMnjp"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
@@ -635,20 +634,51 @@ let currentWord = null;
 let timer = null;
 let canAnswer = true;
 
-// Audio - ResponsiveVoice (works on all mobile)
+// Audio - Mobile-friendly TTS
+let audioUnlocked = false;
+let ttsAudio = null;
+
+function unlockAudio() {
+    if (audioUnlocked) return;
+    // Create and play silent audio to unlock mobile audio context
+    ttsAudio = new Audio();
+    ttsAudio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAgAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAbC5CQMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+M4wAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+M4wDkAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+    ttsAudio.play().then(() => { audioUnlocked = true; }).catch(() => {});
+    
+    // Also unlock speechSynthesis
+    try {
+        const u = new SpeechSynthesisUtterance('');
+        u.volume = 0;
+        speechSynthesis.speak(u);
+    } catch(e) {}
+}
+
 function playPronunciation() {
     if (!currentWord) return;
-    if (typeof responsiveVoice !== 'undefined') {
-        responsiveVoice.speak(currentWord.kr, 'Korean Female', {rate: 0.9, volume: 1});
-    } else {
-        // Final fallback
-        try {
-            const u = new SpeechSynthesisUtterance(currentWord.kr);
-            u.lang = 'ko-KR'; u.rate = 0.8;
-            speechSynthesis.cancel();
-            speechSynthesis.speak(u);
-        } catch(e) {}
+    
+    // Method 1: speechSynthesis (direct in click handler)
+    try {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(currentWord.kr);
+        u.lang = 'ko-KR';
+        u.rate = 0.8;
+        u.volume = 1.0;
+        
+        // Try to find Korean voice
+        const voices = speechSynthesis.getVoices();
+        const koVoice = voices.find(v => v.lang.startsWith('ko'));
+        if (koVoice) u.voice = koVoice;
+        
+        speechSynthesis.speak(u);
+    } catch(e) {
+        console.log('TTS failed:', e);
     }
+}
+
+// Pre-load voices
+if (typeof speechSynthesis !== 'undefined') {
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 }
 
 function playCorrectSfx() {
@@ -827,7 +857,7 @@ function showQuestion() {
     });
 
     // Auto play pronunciation
-    setTimeout(() => playPronunciation(), 300);
+    // User taps speaker button to hear pronunciation
 }
 
 function handleAnswer(btn, chosen) {
@@ -894,6 +924,7 @@ function startGame() {
     document.getElementById('timerDisplay').textContent = '50';
     document.getElementById('timerDisplay').className = 'hud-timer';
 
+    unlockAudio();
     showScreen('gameScreen');
     startBGM();
     showQuestion();
